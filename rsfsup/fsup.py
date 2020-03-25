@@ -191,7 +191,7 @@ class Fsup(RSBase):
         original_timeout = self._visa.timeout
         sweep_time = float(self._visa.query(f"SENSE{self._screen()}:SWEEP:TIME?"))  # s
         self._visa.timeout = original_timeout + 1000 * sweep_time
-        self._visa.write(f"INIT{self._screen()}:CONT OFF")
+        self._visa.write(f"INIT{self._screen()}:CONT SINGLE")
         self._visa.write(f"INIT{self._screen()};*WAI")
         self._visa.timeout = original_timeout
         data = self._traces[i].data
@@ -207,15 +207,17 @@ class Fsup(RSBase):
         Parameters:
             trace (int): {1, 2, 3}
         """
-        #num = self.sweep.points
+        original_mode = self.mode
+        if(original_mode != "SSA"):
+            self.mode = "SSA"
         i = trace - 1
         # change to single sweep, complete acquisition, read trace
         continuous = self._visa.query(f"INIT{self._screen()}:CONT?")
         original_continuous = BOOLEAN.get(continuous, continuous)
         original_timeout = self._visa.timeout
         sweep_time = float(self._visa.query("SWE:TIME?"))  # s
-        self._visa.timeout = original_timeout + 1000 * sweep_time + 10000
-        self._visa.write(f"INIT{self._screen()}:CONT OFF")
+        self._visa.timeout = original_timeout + 1000 * sweep_time + 20000 # value found by experiment
+        self._visa.write(f"INIT{self._screen()}:CONT SINGLE")
         self._visa.write(f"INIT{self._screen()};*WAI")
         data = self._traces[i].data
         self._visa.write(f"INIT{self._screen()}:CONT {original_continuous}")
@@ -227,6 +229,8 @@ class Fsup(RSBase):
         y = unyt_array(data[1::2], unit) # taking every second value of data, because every other second is frequency
         y.name = "$PhN$"
         self._visa.timeout = original_timeout
+        if(original_mode != self.mode):
+            self.mode = original_mode
         return (x, y)
 
 

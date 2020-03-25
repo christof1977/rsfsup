@@ -201,6 +201,35 @@ class Fsup(RSBase):
         y.name = "$P$"
         return (x, y)
 
+    def read_pn(self, trace=1):
+        """Read trace data and return tuple (X, Y)
+
+        Parameters:
+            trace (int): {1, 2, 3}
+        """
+        #num = self.sweep.points
+        i = trace - 1
+        # change to single sweep, complete acquisition, read trace
+        continuous = self._visa.query(f"INIT{self._screen()}:CONT?")
+        original_continuous = BOOLEAN.get(continuous, continuous)
+        original_timeout = self._visa.timeout
+        sweep_time = float(self._visa.query("SWE:TIME?"))  # s
+        self._visa.timeout = original_timeout + 1000 * sweep_time + 10000
+        self._visa.write(f"INIT{self._screen()}:CONT OFF")
+        self._visa.write(f"INIT{self._screen()};*WAI")
+        data = self._traces[i].data
+        self._visa.write(f"INIT{self._screen()}:CONT {original_continuous}")
+        x = unyt_array(data[0::2], "Hz") # taking every second value of data, because every other second is phase noise value
+        x.name = "$f$"
+        unit = self._traces[i].y_unit
+        if(unit == "DBC/HZ"):
+            unit = "dBc/Hz"
+        y = unyt_array(data[1::2], unit) # taking every second value of data, because every other second is frequency
+        y.name = "$PhN$"
+        self._visa.timeout = original_timeout
+        return (x, y)
+
+
     def __dir__(self):
         for marker in self._markers + self._deltamarkers:
             if marker.state == "OFF":

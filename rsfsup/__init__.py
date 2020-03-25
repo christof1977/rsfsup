@@ -52,7 +52,7 @@ class CommChannel:
         return Fsup(self._visa)
 
     def __exit__(self, exc_type, exc_value, exc_tb):
-        self._visa.write("SYSTEM:DISPLAY:FPANEL ON")
+        self._visa.write("SYSTEM:DISPLAY:FPANEL OFF")
         self._visa.write("SYSTEM:KLOCK OFF")
         self._visa.close()
         self._rm.close()
